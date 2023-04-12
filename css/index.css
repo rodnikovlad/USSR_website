@@ -3,6 +3,10 @@
     margin: 0;
 }
 
+a{
+    text-decoration: none;
+}
+
 body{
     top: 0;
     left: 0;
@@ -100,7 +104,8 @@ body{
 }
 
 .col-1-header pre{
-    margin-top: 20px;
+    margin-top: auto;
+    margin-bottom: auto;
     margin-left: auto;
     margin-right: auto;
     color: #6d0000;
@@ -158,7 +163,7 @@ figure{
     font-family: 'Inter', sans-serif;
     font-style: normal;
     font-weight: 1000;
-    font-size: 18px;
+    font-size: 1vw;
     background: linear-gradient(180deg, #c00000 0%, #7c0000 41.01%, #724c01 49.21%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -181,7 +186,77 @@ figure{
 .menu-items-container{
     width: 100%;
     height: 90%;
-    display: none;
+    display: flex;
+}
+
+.category-container{
+    width: 100%;
+    height: 90%;
+    overflow: auto;
+}
+
+.category-text-container{
+    width:100%;
+    margin-top: 50px;
+}
+
+.category-text-container pre{
+    white-space: pre-wrap;
+    font-family: 'Alice';
+    font-size:larger;
+}
+
+.articles-container{
+    width: 100%;
+    margin-top: 50px;
+}
+
+.articles-container button{
+    display: flex;
+    margin-left: auto;
+    margin-right: auto;
+    background: linear-gradient(180deg, #ECC978 0%, #FFEAB5 51.04%, #E7C279 66.67%, #D8B66D 100%);
+    border: 1px solid #000000;
+    border-radius: 50px;
+    cursor: pointer;
+    width: 20%;
+    font-size: 23px;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Alice';
+}
+
+.article-text-container{
+    margin-top: 20px;
+    width: 100%;
+}
+
+.align-text-container{
+    width: 100%;
+}
+
+.center-text{
+    text-align: center;    
+}
+
+.article-text-container p{
+    margin-top: 20px;
+    font-family: 'Alice';
+    font-size: 23px;
+    text-align: center;
+    color: #000000;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.articles-text-container p{
+    display: flex;
+    margin-top: 20px;
+    font-family: 'Alice';
+    font-size: large;
+    margin-left: auto;
+    margin-right: auto;
+    color: #000000;
 }
 
 .menu-item-col{
@@ -254,7 +329,7 @@ figure{
     font-family: 'Alice';
     font-style: normal;
     font-weight: bold;
-    font-size: 17px;
+    font-size: 1vw;
     color: #920a0a;
 }
 
@@ -289,7 +364,7 @@ footer{
 
 .limit-footer-item{
     margin: auto;
-    width: 60%;
+    width: 70%;
     height: 80%;
     text-align: center;
     display: table-cell;
@@ -300,9 +375,9 @@ footer{
     font-family: 'Alice';
     font-style: normal;
     font-weight: 1000;
-    font-size: 20px;
+    font-size: 1vw;
     /* identical to box height */
-
+    height: 15%;
 
     color: #960303;
     white-space: nowraps;
@@ -320,32 +395,74 @@ footer{
 
 .footer-content-container-main{
     width: 100%;
-    height: 60%;
+    height: 70%;
+    display: flex;
 }
 
 .footer-content-container-text{
     font-family: 'Alice';
     font-weight: 1000;
-    font-size: 20px;
-
+    font-size: 1vw;
+    height: 15%;
     color: #960303;
 }
 
+.social-container{
+    width: 33.3333%;
+    height: 100%;
+    display: flex;
+}
+
+.social-container a{
+    width: 100%;
+    height: 100%;
+    display: flex;
+}
+
+.social-container img{
+    object-fit: contain;
+    width: 50%;
+    margin: auto;
+    cursor: pointer;
+}
+
+.footer-content-container-main p{
+    margin: auto;
+    font-family: 'Alice';
+    font-weight: 1000;
+    font-size: 1.2vw;
+    color: #000000;
+}
+
+.footer-info-container{
+    margin: auto;
+    text-align: center;
+}
+
+.footer-info-container p{
+    font-size: 1vw;
+}
 /* ---------------------------------Статьи------------------------------- */
 
 .article-text{
     margin-top: 25px;
-    display: none;
+    display: block;
     width: 97%;
     margin-left: auto;
     margin-right: auto;
     padding-bottom: 10px;
 }
 
-.article-text p{
+.article-text-main{
     white-space: pre-wrap;
     font-family: 'Alice';
     font-size: large;
+}
+
+.article-text-title{
+    white-space: pre-wrap;
+    font-family: 'Alice';
+    font-size: 30px;
 }
 
 #article-1 #article-6{
@@ -356,7 +473,7 @@ footer{
     width: 100%;
     height: 90%;
     overflow-x: auto;
-    display: none;
+    display: block;
 }
 
 #introduction-text{
@@ -374,7 +491,7 @@ footer{
 
 .article-img{
     object-fit: contain;
-    width: 250px;
+    /* width: 100%; */
     margin-left: auto;
     margin-right: auto;
     display: flex;
@@ -407,6 +524,161 @@ footer{
   /* ---------------------------------Адаптивный слайдер для "альбомов"------------------------------- */
 
   .slider-image{
-    width:100%;
+    width: 500px;
+    height: 500px;
     object-fit: contain;
+  }
+  
+  /* ---------------------------------Адаптация под разные разрешения------------------------------- */
+
+  @media (max-width: 1400px) {
+    /*
+    Стили для устройств, у которых ширина viewport меньше или равно 1400 пикселей,
+    но больше 990 пикселей.
+    Эти стили будут использованы для планшетов и ноутбуков с низким разрешением
+    */
+
+    .col-1{
+        display: none;
+    }
+
+    .quote-background{
+        width: 100%;
+        text-align: center;
+    }
+
+    .quote-background p{
+        font-size: 20px;
+    }
+
+    .footer-content-container{
+        border-radius: 40px;
+    }
+
+    /* .footer-content-container p{
+        font-size: 20px;
+    } */
+
+    .col-2{
+        width: 100%;
+    }
+
+    .col-3{
+        display: none;
+    }
+
+    .item-title p{
+        font-size: 15px;
+        white-space: nowrap;
+    }
+
+    .limit-footer-item{
+        width: 90%;
+    }
+
+    .limit-footer-item-text{
+        font-size: 18px;
+    }
+
+    .footer-content-container-text{
+        font-size: 18px;
+    }
+
+    .footer-content-container-main p{
+        font-size: 18px;
+    }
+  }
+
+  @media (max-width: 990px) {
+    /*
+    Стили для устройств, у которых ширина viewport меньше или равно 990 пикселей,
+    но больше 770 пикселей.
+    Эти стили подойдут для некоторых мобильных устройств и планшетов
+    */
+
+    .articles-container button{
+        width: 40%;
+        padding: 10px;
+    }
+
+    .footer-content-container-text{
+        display: none;
+    }
+
+    .limit-footer-item-text{
+        height: 30%;
+        margin-top: 10px;
+    }
+
+    .footer-content-container-main{
+        height: 50%;
+    }
+
+    .quote-container p{
+        font-size: 15px;
+    }
+
+    #menu-items{
+        display: block;
+        overflow: auto;
+    }
+
+    .menu-item-col{
+        display: flex;
+        width: 100%;
+        height: auto;
+    }
+
+    .menu-item{
+        width: 33.3333%;
+    }
+  }
+
+  @media (max-width: 770px) {
+    /*
+    Стили для устройств, у которых ширина viewport меньше или равно 770 пикселей.
+    Это множество мобильных устройств
+    */
+    
+    .article-img{
+        width: 100%;
+    }
+}
+
+
+  @media (max-width: 440px) {
+    /*
+    Стили для устройств, у которых ширина viewport меньше или равно 770 пикселей.
+    Это множество мобильных устройств
+    */
+
+    .menu-item p{
+        font-size: 10px;
+    }
+
+    .col-2-header{
+        padding-bottom: 15px;
+    }
+
+    .quote-container{
+        display: none;
+    }
+
+    .limit-footer-item-text{
+        height: 30%;
+        font-size: 10px;
+    }
+
+    .footer-content-container-main{
+        height: 50%;
+    }
+
+    .footer-content-container-main p{
+        font-size: 10px;
+    }
+
+    .logo{
+        width: 50%;
+        height: auto;
+    }
   }

@@ -1,443 +1,448 @@
-/* eslint-disable no-param-reassign,getter-return */
-// noinspection DuplicatedCode
-
 /**
- * SimpleAdaptiveSlider by itchief (https://github.com/itchief/ui-components/tree/master/simple-adaptive-slider)
- * Copyright 2020 - 2022 Alexander Maltsev
- * Licensed under MIT (https://github.com/itchief/ui-components/blob/master/LICENSE)
+ * @class ItcSlider
+ * @version 1.0.0
+ * @author https://github.com/itchief
+ * @copyright Alexander Maltsev 2020 - 2022
+ * @license MIT (https://github.com/itchief/ui-components/blob/master/LICENSE)
+ * @tutorial https://itchief.ru/javascript/slider
  */
+class ItcSlider {
+  static #EL_WRAPPER = 'wrapper';
+  static #EL_ITEMS = 'items';
+  static #EL_ITEM = 'item';
+  static #EL_ITEM_ACTIVE = 'item_active';
+  static #EL_INDICATOR = 'indicator';
+  static #EL_INDICATOR_ACTIVE = 'indicator_active';
+  static #BTN_PREV = 'btn_prev';
+  static #BTN_NEXT = 'btn_next';
+  static #BTN_HIDE = 'btn_hide';
+  static #TRANSITION_NONE = 'transition-none';
 
-class ItcSimpleSlider {
-  // базовые классы и селекторы
-  static PREFIX = 'itcss';
-  static EL_WRAPPER = `${ItcSimpleSlider.PREFIX}__wrapper`;
-  static EL_ITEM = `${ItcSimpleSlider.PREFIX}__item`;
-  static EL_ITEM_ACTIVE = `${ItcSimpleSlider.PREFIX}__item_active`;
-  static EL_ITEMS = `${ItcSimpleSlider.PREFIX}__items`;
-  static EL_INDICATOR = `${ItcSimpleSlider.PREFIX}__indicator`;
-  static EL_INDICATOR_ACTIVE = `${ItcSimpleSlider.PREFIX}__indicator_active`;
-  static EL_INDICATORS = `${ItcSimpleSlider.PREFIX}__indicators`;
-  static EL_CONTROL = `${ItcSimpleSlider.PREFIX}__btn`;
-  // порог для переключения слайда (20%)
-  static SWIPE_THRESHOLD = 20;
-  // класс для отключения transition
-  static TRANSITION_NONE = 'transition-none';
-  // Определите, поддерживает ли текущий клиент пассивные события
-  static checkSupportPassiveEvents() {
-    let passiveSupported = false;
-    try {
-      const options = Object.defineProperty({}, 'passive', {
-        get() {
-          passiveSupported = true;
-        },
-      });
-      window.addEventListener('testPassiveListener', null, options);
-      window.removeEventListener('testPassiveListener', null, options);
-    } catch (error) {
-      passiveSupported = false;
-    }
-    return passiveSupported;
-  }
+  static #instances = [];
 
-  constructor(target, config) {
-    this._el = typeof target === 'string' ? document.querySelector(target) : target;
-    this._elWrapper = this._el.querySelector(`.${this.constructor.EL_WRAPPER}`);
-    this._elItems = this._el.querySelector(`.${this.constructor.EL_ITEMS}`);
-    this._elListItem = this._el.querySelectorAll(`.${this.constructor.EL_ITEM}`);
+  #config;
+  #state;
 
-    // экстремальные значения слайдов
-    this._exOrderMin = 0;
-    this._exOrderMax = 0;
-    this._exItemMin = null;
-    this._exItemMax = null;
-    this._exTranslateMin = 0;
-    this._exTranslateMax = 0;
+  /**
+   * @param {HTMLElement} el
+   * @param {Object} config
+   * @param {String} prefix
+   */
+  constructor(el, config = {}, prefix = 'itc-slider__') {
 
-    this._states = [];
-
-    this._isBalancing = false;
-
-    // направление смены слайдов (по умолчанию)
-    this._direction = 'next';
-    // текущее значение трансформации
-    this._transform = 0;
-
-    this._clientRect = this._elWrapper.getBoundingClientRect();
-
-    this._supportResizeObserver = typeof window.ResizeObserver !== 'undefined';
-
-    const styleElItems = window.getComputedStyle(this._elItems);
-    this._delay = Math.round(parseFloat(styleElItems.transitionDuration) * 50);
-
-    // swipe параметры
-    this._hasSwipeState = false;
-    this._swipeStartPosX = 0;
-    // id таймера
-    this._intervalId = null;
-    this._config = {
-      loop: true,
-      autoplay: false,
-      interval: 5000,
-      indicators: true,
-      swipe: true,
-      ...config
+    this.#state = {
+      prefix: prefix, // префикс для классов
+      el: el, // элемент который нужно активировать как ItcSlider
+      elWrapper: el.querySelector(`.${prefix}${this.constructor.#EL_WRAPPER}`), // элемент с #CLASS_WRAPPER
+      elItems: el.querySelector(`.${prefix}${this.constructor.#EL_ITEMS}`), // элемент, в котором находятся слайды
+      elListItem: el.querySelectorAll(`.${prefix}${this.constructor.#EL_ITEM}`), // список элементов, являющиеся слайдами
+      btnPrev: el.querySelector(`.${prefix}${this.constructor.#BTN_PREV}`), // кнопка, для перехода к предыдущему слайду
+      btnNext: el.querySelector(`.${prefix}${this.constructor.#BTN_NEXT}`), // кнопка, для перехода к следующему слайду
+      btnClassHide: prefix + this.constructor.#BTN_HIDE, // класс для скрытия кнопки
+      exOrderMin: 0,
+      exOrderMax: 0,
+      exItemMin: null,
+      exItemMax: null,
+      exTranslateMin: 0,
+      exTranslateMax: 0,
+      direction: 'next', // направление смены слайдов
+      intervalId: null, // id таймера
+      isSwiping: false,
+      swipeX: 0,
     };
-    this._elItems.dataset.translate = '0';
-    // добавляем к слайдам data-атрибуты
-    this._elListItem.forEach((item, index) => {
-      item.dataset.order = `${index}`;
-      item.dataset.index = `${index}`;
-      item.dataset.translate = '0';
-      this._states.push(index === 0 ? 1 : 0);
-    });
 
-    // перемещаем последний слайд перед первым
-    if (this._config.loop) {
-      const count = this._elListItem.length - 1;
-      const translate = -this._elListItem.length;
-      this._elListItem[count].dataset.order = '-1';
-      this._elListItem[count].dataset.translate = `${-this._elListItem.length}`;
-      const valueX = translate * this._clientRect.width;
-      this._elListItem[count].style.transform = `translate3D(${valueX}px, 0px, 0.1px)`;
+    this.#config = {
+      loop: true, autoplay: false, interval: 5000, refresh: true, swipe: true, ...config
+    };
+
+    this.#init();
+    this.#attachEvents();
+  }
+
+  /**
+   * Статический метод, который возвращает экземпляр ItcSlider, связанный с DOM-элементом
+   * @param {HTMLElement} elSlider
+   * @returns {?ItcSlider}
+   */
+  static getInstance(elSlider) {
+    const found = this.#instances.find(el => el.target === elSlider);
+    if (found) {
+      return found.instance;
     }
-    // добавляем индикаторы к слайдеру
-    this._addIndicators();
-    this._elListIndicator = document.querySelectorAll(`.${this.constructor.EL_INDICATOR}`);
-    // обновляем экстремальные значения переменных
-    this._updateExProperties();
-    // помечаем активные элементы
-    this._changeActiveItems();
-    // назначаем обработчики
-    this._addEventListener();
-    // запускаем автоматическую смену слайдов
-    this._autoplay();
+    return null;
   }
 
-  _changeActiveItems() {
-    this._states.forEach((item, index) => {
-      if (item) {
-        this._elListItem[index].classList.add(this.constructor.EL_ITEM_ACTIVE);
-      } else {
-        this._elListItem[index].classList.remove(this.constructor.EL_ITEM_ACTIVE);
+  /**
+   * @param {String|HTMLElement} target
+   * @param {Object} config
+   * @param {String} prefix
+   */
+  static getOrCreateInstance(target, config = {}, prefix = 'itc-slider__') {
+    try {
+      const elSlider = typeof target === 'string' ? document.querySelector(target) : target;
+      const result = this.getInstance(elSlider);
+      if (result) {
+        return result;
       }
-      if (this._elListIndicator.length && item) {
-        this._elListIndicator[index].classList.add(this.constructor.EL_INDICATOR_ACTIVE);
-      } else if (this._elListIndicator.length && !item) {
-        this._elListIndicator[index].classList.remove(this.constructor.EL_INDICATOR_ACTIVE);
-      }
+      const slider = new this(elSlider, config, prefix);
+      this.#instances.push({target: elSlider, instance: slider});
+      return slider;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // статический метод для активирования элементов как ItcSlider на основе data-атрибутов
+  static createInstances() {
+    document.querySelectorAll('[data-slider="itc-slider"]').forEach((el) => {
+      const dataset = el.dataset;
+      const params = {};
+      Object.keys(dataset).forEach((key) => {
+        if (key === 'slider') {
+          return;
+        }
+        let value = dataset[key];
+        value = value === 'true' ? true : value;
+        value = value === 'false' ? false : value;
+        value = Number.isNaN(Number(value)) ? Number(value) : value;
+        params[key] = value;
+      });
+      this.getOrCreateInstance(el, params);
     });
-    this._el.dispatchEvent(new CustomEvent('change.itc.slider', { bubbles: true }));
   }
 
-  // смена слайдов
-  _move() {
-    this._elItems.classList.remove(this.constructor.TRANSITION_NONE);
-    if (this._direction === 'none') {
-      const valueX = this._transform * this._clientRect.width;
-      this._elItems.style.transform = `translate3D(${valueX}px, 0px, 0.1px)`;
+  next() {
+    this.#state.direction = 'next';
+    this.#move();
+  }
+
+  prev() {
+    this.#state.direction = 'prev';
+    this.#move();
+  }
+
+  moveTo(index) {
+    this.#moveTo(index);
+  }
+
+  reset() {
+    this.#reset();
+  }
+
+  dispose() {
+    this.#detachEvents();
+    const transitionNoneClass = this.#state.prefix + this.constructor.#TRANSITION_NONE;
+    const activeClass = this.#state.prefix + this.constructor.#EL_ITEM_ACTIVE;
+    this.#autoplay('stop');
+    this.#state.elItems.classList.add(transitionNoneClass);
+    this.#state.elItems.style.transform = '';
+    this.#state.elListItem.forEach((el) => {
+      el.style.transform = '';
+      el.classList.remove(activeClass);
+    });
+    const selIndicators = `${this.#state.prefix}${this.constructor.#EL_INDICATOR_ACTIVE}`;
+    document.querySelectorAll(`.${selIndicators}`).forEach((el) => {
+      el.classList.remove(selIndicators);
+    })
+    this.#state.elItems.offsetHeight;
+    this.#state.elItems.classList.remove(transitionNoneClass);
+    const index = this.constructor.#instances.findIndex(el => el.target === this.#state.el);
+    this.constructor.#instances.splice(index, 1);
+  }
+
+  #onClick(e) {
+    if (!(e.target.closest('.itc-slider__btn') || e.target.closest('.itc-slider__indicators'))) {
       return;
     }
-    if (!this._config.loop) {
-      const isNotMovePrev = this._states[0] && this._direction === 'prev';
-      const isNotMoveNext = this._states[this._states.length - 1] && this._direction === 'next';
-      if (isNotMovePrev || isNotMoveNext) {
-        this._autoplay('stop');
-        return;
+    e.preventDefault();
+    const classBtnPrev = this.#state.prefix + this.constructor.#BTN_PREV;
+    const classBtnNext = this.#state.prefix + this.constructor.#BTN_NEXT;
+    this.#autoplay('stop');
+    if (e.target.closest(`.${classBtnPrev}`) || e.target.closest(`.${classBtnNext}`)) {
+      this.#state.direction = e.target.closest(`.${classBtnPrev}`) ? 'prev' : 'next';
+      this.#move();
+    } else if (e.target.dataset.slideTo) {
+      const index = parseInt(e.target.dataset.slideTo, 10);
+      this.#moveTo(index);
+    }
+    this.#config.loop ? this.#autoplay() : null;
+  }
+
+  #onMouseEnter() {
+    this.#autoplay('stop');
+  }
+
+  #onMouseLeave() {
+    this.#autoplay();
+  }
+
+  #onResize() {
+    window.requestAnimationFrame(this.#reset.bind(this));
+  }
+
+  #onSwipeStart(e) {
+    this.#autoplay('stop');
+    const event = e.type.search('touch') === 0 ? e.touches[0] : e;
+    this.#state.swipeX = event.clientX;
+    this.#state.isSwiping = true;
+  }
+
+  #onSwipeEnd(e) {
+    if (!this.#state.isSwiping) {
+      return;
+    }
+    const event = e.type.search('touch') === 0 ? e.changedTouches[0] : e;
+    const diffPos = this.#state.swipeX - event.clientX;
+    if (diffPos > 50) {
+      this.#state.direction = 'next';
+      this.#move();
+    } else if (diffPos < -50) {
+      this.#state.direction = 'prev';
+      this.#move();
+    }
+    this.#state.isSwiping = false;
+    if (this.#config.loop) {
+      this.#autoplay();
+    }
+  }
+
+  #onTransitionStart() {
+    if (this.#state.isBalancing) {
+      return;
+    }
+    this.#state.isBalancing = true;
+    window.requestAnimationFrame(this.#balanceItems.bind(this));
+  }
+
+  #onTransitionEnd() {
+    this.#state.isBalancing = false;
+  }
+
+  #onDragStart(e) {
+    e.preventDefault();
+  }
+
+  #onVisibilityChange() {
+    if (document.visibilityState === 'hidden') {
+      this.#autoplay('stop');
+    } else if (document.visibilityState === 'visible' && this.#config.loop) {
+      this.#autoplay();
+    }
+  }
+
+  #attachEvents() {
+    this.#state.events = {
+      'click': [this.#state.el, this.#onClick.bind(this), true],
+      'mouseenter': [this.#state.el, this.#onMouseEnter.bind(this), true],
+      'mouseleave': [this.#state.el, this.#onMouseLeave.bind(this), true],
+      'resize': [window, this.#onResize.bind(this), this.#config.refresh],
+      'itc-slider__transition-start': [this.#state.elItems, this.#onTransitionStart.bind(this), this.#config.loop],
+      'transitionend': [this.#state.elItems, this.#onTransitionEnd.bind(this), this.#config.loop],
+      'touchstart': [this.#state.el, this.#onSwipeStart.bind(this), this.#config.swipe],
+      'mousedown': [this.#state.el, this.#onSwipeStart.bind(this), this.#config.swipe],
+      'touchend': [document, this.#onSwipeEnd.bind(this), this.#config.swipe],
+      'mouseup': [document, this.#onSwipeEnd.bind(this), this.#config.swipe],
+      'dragstart': [this.#state.el, this.#onDragStart.bind(this), true],
+      'visibilitychange': [document, this.#onVisibilityChange.bind(this), true]
+    };
+    Object.keys(this.#state.events).forEach((type) => {
+      if (this.#state.events[type][2]) {
+        const el = this.#state.events[type][0];
+        const fn = this.#state.events[type][1];
+        el.addEventListener(type, fn);
       }
-    }
-    this._transform += this._direction === 'next' ? -1 : 1;
-    if (this._direction === 'next') {
-      this._states = [...this._states.slice(-1), ...this._states.slice(0, -1)];
-    } else if (this._direction === 'prev') {
-      this._states = [...this._states.slice(1), ...this._states.slice(0, 1)];
-    }
-    this._elItems.dataset.translate = this._transform;
-    const valueX = this._transform * this._clientRect.width;
-    this._elItems.style.transform = `translate3D(${valueX}px, 0px, 0.1px)`;
-    this._elItems.dispatchEvent(new CustomEvent('moving.itc.slider', { bubbles: true }));
-    this._changeActiveItems();
-    if (!this._isBalancing) {
-      this._isBalancing = true;
-      window.requestAnimationFrame(this._balanceItems.bind(this));
-    }
+    });
   }
 
-  // функция для перемещения к слайду по индексу
-  _moveTo(index) {
-    const currIndex = this._states.indexOf(1);
-    this._direction = index > currIndex ? 'next' : 'prev';
-    for (let i = 0; i < Math.abs(index - currIndex); i++) {
-      this._move();
-    }
+  #detachEvents() {
+    Object.keys(this.#state.events).forEach((type) => {
+      if (this.#state.events[type][2]) {
+        const el = this.#state.events[type][0];
+        const fn = this.#state.events[type][1];
+        el.removeEventListener(type, fn);
+      }
+    });
   }
 
-  // метод для автоматической смены слайдов
-  _autoplay(action) {
-    if (!this._config.autoplay) {
+  #autoplay(action) {
+    if (!this.#config.autoplay) {
       return;
     }
     if (action === 'stop') {
-      clearInterval(this._intervalId);
-      this._intervalId = null;
+      clearInterval(this.#state.intervalId);
+      this.#state.intervalId = null;
       return;
     }
-    if (this._intervalId === null) {
-      this._intervalId = setInterval(() => {
-        this._direction = 'next';
-        this._move();
-      }, this._config.interval);
+    if (this.#state.intervalId === null) {
+      this.#state.intervalId = setInterval(() => {
+        this.#state.direction = 'next';
+        this.#move();
+      }, this.#config.interval);
     }
   }
 
-  // добавление индикаторов
-  _addIndicators() {
-    const el = this._el.querySelector(`.${this.constructor.EL_INDICATORS}`);
-    if (el || !this._config.indicators) {
+  #balanceItems() {
+    if (!this.#state.isBalancing) {
       return;
     }
-    let rows = '';
-    for (let i = 0, { length } = this._elListItem; i < length; i++) {
-      rows += `<li class="${this.constructor.EL_INDICATOR}" data-slide-to="${i}"></li>`;
-    }
-    const html = `<ol class="${this.constructor.EL_INDICATORS}">${rows}</ol>`;
-    this._el.insertAdjacentHTML('beforeend', html);
-  }
-
-  // refresh extreme values
-  _updateExProperties() {
-    const els = Object.values(this._elListItem).map((el) => el);
-    const orders = els.map((item) => Number(item.dataset.order));
-    this._exOrderMin = Math.min(...orders);
-    this._exOrderMax = Math.max(...orders);
-    const min = orders.indexOf(this._exOrderMin);
-    const max = orders.indexOf(this._exOrderMax);
-    this._exItemMin = els[min];
-    this._exItemMax = els[max];
-    this._exTranslateMin = Number(this._exItemMin.dataset.translate);
-    this._exTranslateMax = Number(this._exItemMax.dataset.translate);
-  }
-
-  _balanceItems() {
-    if (!this._isBalancing) {
-      return;
-    }
-    if (this._direction === 'next') {
-      const exItemRight = this._exItemMin.getBoundingClientRect().right;
-      if (exItemRight < this._clientRect.left - this._clientRect.width / 2) {
-        this._exItemMin.dataset.order = `${this._exOrderMin + this._elListItem.length}`;
-        this._exItemMin.dataset.translate = `${this._exTranslateMin + this._elListItem.length}`;
-        const valueX = (this._exTranslateMin + this._elListItem.length) * this._clientRect.width;
-        this._exItemMin.style.transform = `translate3D(${valueX}px, 0px, 0.1px)`;
-        this._updateExProperties();
+    const wrapperRect = this.#state.elWrapper.getBoundingClientRect();
+    const targetWidth = wrapperRect.width / this.#state.countActiveItems / 2;
+    const countItems = this.#state.elListItem.length;
+    if (this.#state.direction === 'next') {
+      const exItemRectRight = this.#state.exItemMin.getBoundingClientRect().right;
+      if (exItemRectRight < wrapperRect.left - targetWidth) {
+        const elFound = this.#state.els.find((item) => item.el === this.#state.exItemMin);
+        elFound.order = this.#state.exOrderMin + countItems;
+        const translate = this.#state.exTranslateMin + countItems * this.#state.width;
+        elFound.translate = translate;
+        this.#state.exItemMin.style.transform = `translate3D(${translate}px, 0px, 0.1px)`;
+        this.#updateExProperties();
       }
     } else {
-      const exItemLeft = this._exItemMax.getBoundingClientRect().left;
-      if (exItemLeft > this._clientRect.right + this._clientRect.width / 2) {
-        this._exItemMax.dataset.order = `${this._exOrderMax - this._elListItem.length}`;
-        this._exItemMax.dataset.translate = `${this._exTranslateMax - this._elListItem.length}`;
-        const valueX = (this._exTranslateMax - this._elListItem.length) * this._clientRect.width;
-        this._exItemMax.style.transform = `translate3D(${valueX}px, 0px, 0.1px)`;
-        this._updateExProperties();
+      const exItemRectLeft = this.#state.exItemMax.getBoundingClientRect().left;
+      if (exItemRectLeft > wrapperRect.right + targetWidth) {
+        const elFound = this.#state.els.find((item) => item.el === this.#state.exItemMax);
+        elFound.order = this.#state.exOrderMax - countItems;
+        const translate = this.#state.exTranslateMax - countItems * this.#state.width;
+        elFound.translate = translate;
+        this.#state.exItemMax.style.transform = `translate3D(${translate}px, 0px, 0.1px)`;
+        this.#updateExProperties();
       }
     }
-    window.setTimeout(() => {
-      window.requestAnimationFrame(this._balanceItems.bind(this));
-    }, this._delay);
+    window.requestAnimationFrame(this.#balanceItems.bind(this));
   }
 
-  // adding listeners
-  _addEventListener() {
-    const onSwipeStart = (e) => {
-      this._autoplay('stop');
-      if (e.target.closest(`.${this.constructor.EL_CONTROL}`)) {
-        return;
-      }
-      const event = e.type.search('touch') === 0 ? e.touches[0] : e;
-      this._swipeStartPosX = event.clientX;
-      this._swipeStartPosY = event.clientY;
-      this._hasSwipeState = true;
-      this._hasSwiping = false;
-    };
-    const onSwipeMove = (e) => {
-      if (!this._hasSwipeState) {
-        return;
-      }
-      const event = e.type.search('touch') === 0 ? e.touches[0] : e;
-      let diffPosX = this._swipeStartPosX - event.clientX;
-      const diffPosY = this._swipeStartPosY - event.clientY;
-      if (!this._hasSwiping) {
-        if (Math.abs(diffPosY) > Math.abs(diffPosX) || Math.abs(diffPosX) === 0) {
-          this._hasSwipeState = false;
-          return;
-        }
-        this._hasSwiping = true;
-      }
-      e.preventDefault();
-      if (!this._config.loop) {
-        const isNotMoveFirst = this._states[0] && diffPosX <= 0;
-        const isNotMoveLast = this._states[this._states.length - 1] && diffPosX >= 0;
-        if (isNotMoveFirst || isNotMoveLast) {
-          diffPosX /= 4;
-        }
-      }
-      this._elItems.classList.add(this.constructor.TRANSITION_NONE);
-      const valueX = this._transform * this._clientRect.width - diffPosX;
-      this._elItems.style.transform = `translate3D(${valueX}px, 0px, 0.1px)`;
-    };
-    const onSwipeEnd = (e) => {
-      if (!this._hasSwipeState) {
-        return;
-      }
-      const event = e.type.search('touch') === 0 ? e.changedTouches[0] : e;
-      let diffPosX = this._swipeStartPosX - event.clientX;
-      if (diffPosX === 0) {
-        this._hasSwipeState = false;
-        return;
-      }
-      if (!this._config.loop) {
-        const isNotMoveFirst = this._states[0] && diffPosX <= 0;
-        const isNotMoveLast = this._states[this._states.length - 1] && diffPosX >= 0;
-        if (isNotMoveFirst || isNotMoveLast) {
-          diffPosX = 0;
-        }
-      }
-      const value = (diffPosX / this._clientRect.width) * 100;
-      this._elItems.classList.remove(this.constructor.TRANSITION_NONE);
-      if (value > this.constructor.SWIPE_THRESHOLD) {
-        this._direction = 'next';
-        this._move();
-      } else if (value < -this.constructor.SWIPE_THRESHOLD) {
-        this._direction = 'prev';
-        this._move();
+  #updateClasses() {
+    const activeClass = this.#state.prefix + this.constructor.#EL_ITEM_ACTIVE;
+    this.#state.activeItems.forEach((item, index) => {
+      if (item) {
+        this.#state.elListItem[index].classList.add(activeClass);
       } else {
-        this._direction = 'none';
-        this._move();
+        this.#state.elListItem[index].classList.remove(activeClass);
       }
-      this._hasSwipeState = false;
-      this._autoplay();
-    };
-    // click
-    this._el.addEventListener('click', (e) => {
-      const $target = e.target;
-      this._autoplay('stop');
-      if ($target.classList.contains(this.constructor.EL_CONTROL)) {
-        e.preventDefault();
-        this._direction = $target.dataset.slide;
-        this._move();
-      } else if ($target.dataset.slideTo) {
-        e.preventDefault();
-        const index = parseInt($target.dataset.slideTo, 10);
-        this._moveTo(index);
+      const elListIndicators = this.#state.el.querySelectorAll(`.${this.#state.prefix}${this.constructor.#EL_INDICATOR}`);
+      if (elListIndicators.length && item) {
+        elListIndicators[index].classList.add(`${this.#state.prefix}${this.constructor.#EL_INDICATOR_ACTIVE}`);
+      } else if (elListIndicators.length && !item) {
+        elListIndicators[index].classList.remove(`${this.#state.prefix}${this.constructor.#EL_INDICATOR_ACTIVE}`);
       }
-      this._autoplay();
     });
+  }
 
-    // transitionstart and transitionend
-    if (this._config.loop) {
-      this._elItems.addEventListener('transitionend', () => {
-        this._isBalancing = false;
-      });
-    }
-    // mouseenter and mouseleave
-    this._el.addEventListener('mouseenter', () => {
-      this._autoplay('stop');
-    });
-    this._el.addEventListener('mouseleave', () => {
-      this._autoplay();
-    });
-    // swipe
-    if (this._config.swipe) {
-      const options = this.constructor.checkSupportPassiveEvents() ? { passive: false } : false;
-      this._el.addEventListener('touchstart', onSwipeStart, options);
-      this._el.addEventListener('touchmove', onSwipeMove, options);
-      this._el.addEventListener('mousedown', onSwipeStart);
-      this._el.addEventListener('mousemove', onSwipeMove);
-      document.addEventListener('touchend', onSwipeEnd);
-      document.addEventListener('mouseup', onSwipeEnd);
-      document.addEventListener('mouseout', onSwipeEnd);
-    }
-    this._el.addEventListener('dragstart', (e) => {
-      e.preventDefault();
-    });
-    // при изменении активности вкладки
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && this._config.loop) {
-        this._autoplay();
-      } else {
-        this._autoplay('stop');
+  #move() {
+    const widthItem = this.#state.direction === 'next' ? -this.#state.width : this.#state.width;
+    const transform = this.#state.translate + widthItem;
+    if (!this.#config.loop) {
+      const limit = this.#state.width * (this.#state.elListItem.length - this.#state.countActiveItems);
+      if (transform < -limit || transform > 0) {
+        return;
       }
-    });
-    if (this._supportResizeObserver) {
-      const resizeObserver = new ResizeObserver((entries) => {
-        const { contentRect } = entries[0];
-        if (Math.round(this._clientRect.width * 10) === Math.round(contentRect.width * 10)) {
-          return;
-        }
-        this._clientRect = contentRect;
-        const newValueX = contentRect.width * Number(this._elItems.dataset.translate);
-        this.reset(newValueX, true);
-        this._autoplay();
-      });
-      resizeObserver.observe(this._elWrapper);
+      if (this.#state.btnPrev) {
+        this.#state.btnPrev.classList.remove(this.#state.btnClassHide);
+        this.#state.btnNext.classList.remove(this.#state.btnClassHide);
+      }
+      if (this.#state.btnPrev && transform === -limit) {
+        this.#state.btnNext.classList.add(this.#state.btnClassHide);
+      } else if (this.#state.btnPrev && transform === 0) {
+        this.#state.btnPrev.classList.add(this.#state.btnClassHide);
+      }
+    }
+    if (this.#state.direction === 'next') {
+      this.#state.activeItems = [...this.#state.activeItems.slice(-1), ...this.#state.activeItems.slice(0, -1)];
+    } else {
+      this.#state.activeItems = [...this.#state.activeItems.slice(1), ...this.#state.activeItems.slice(0, 1)];
+    }
+    this.#updateClasses();
+    this.#state.translate = transform;
+    this.#state.elItems.style.transform = `translate3D(${transform}px, 0px, 0.1px)`;
+    this.#state.elItems.dispatchEvent(new CustomEvent('itc-slider__transition-start', {
+      bubbles: true
+    }));
+  }
+
+  #moveTo(index) {
+    const delta = this.#state.activeItems.reduce((acc, current, currentIndex) => {
+      const diff = current ? index - currentIndex : acc;
+      return Math.abs(diff) < Math.abs(acc) ? diff : acc;
+    }, this.#state.activeItems.length);
+    if (delta !== 0) {
+      this.#state.direction = delta > 0 ? 'next' : 'prev';
+      for (let i = 0; i < Math.abs(delta); i++) {
+        this.#move();
+      }
     }
   }
 
-  reset(newValueX = 0, recalc = false) {
-    this._autoplay('stop');
-    this._elItems.classList.add(this.constructor.TRANSITION_NONE);
-    this._elItems.style.transform = `translate3D(${newValueX}px, 0px, 0.1px)`;
-    this._elListItem.forEach((el) => {
-      const valueX = recalc ? Number(el.dataset.translate) * this._clientRect.width : 0;
-      el.style.transform = `translate3D(${valueX}px, 0px, 0.1px)`;
+  // приватный метод для выполнения первичной иницианализации
+  #init() {
+    // состояние элементов
+    this.#state.els = [];
+    // текущее значение translate
+    this.#state.translate = 0;
+    // позиции активных элементов
+    this.#state.activeItems = [];
+    // состояние элементов
+    this.#state.isBalancing = false;
+    // получаем gap между слайдами
+    const gap = parseFloat(getComputedStyle(this.#state.elItems).gap);
+    // ширина одного слайда
+    this.#state.width = this.#state.elListItem[0].getBoundingClientRect().width + gap;
+    // ширина #EL_WRAPPER
+    const widthWrapper = this.#state.elWrapper.getBoundingClientRect().width;
+    // количество активных элементов
+    this.#state.countActiveItems = Math.round(widthWrapper / this.#state.width);
+    this.#state.elListItem.forEach((el, index) => {
+      el.style.transform = '';
+      this.#state.activeItems.push(index < this.#state.countActiveItems ? 1 : 0);
+      this.#state.els.push({ el, index, order: index, translate: 0 });
     });
-    if (!recalc) {
-      this._transform = 0;
-      this._states = [];
-      this._elItems.dataset.translate = '0';
-      this._elListItem = this._el.querySelectorAll(`.${this.constructor.EL_ITEM}`);
-      // добавляем к слайдам data-атрибуты
-      this._elListItem.forEach((item, index) => {
-        item.dataset.order = `${index}`;
-        item.dataset.index = `${index}`;
-        item.dataset.translate = '0';
-        this._states.push(index === 0 ? 1 : 0);
-      });
-      // перемещаем последний слайд перед первым
-      if (this._config.loop) {
-        const count = this._elListItem.length - 1;
-        const translate = -this._elListItem.length;
-        this._elListItem[count].dataset.order = '-1';
-        this._elListItem[count].dataset.translate = `${-this._elListItem.length}`;
-        const valueX = translate * this._clientRect.width;
-        this._elListItem[count].style.transform = `translate3D(${valueX}px, 0px, 0.1px)`;
-      }
-      this._el.querySelector(`.${this.constructor.EL_INDICATORS}`).remove();
-      // добавляем индикаторы к слайдеру
-      this._addIndicators();
-      this._elListIndicator = document.querySelectorAll(`.${this.constructor.EL_INDICATOR}`);
-      // обновляем экстремальные значения переменных
-      this._updateExProperties();
-      // помечаем активные элементы
-      this._changeActiveItems();
+    if (this.#config.loop) {
+      const lastIndex = this.#state.elListItem.length - 1;
+      const translate = -(lastIndex + 1) * this.#state.width;
+      this.#state.elListItem[lastIndex].style.transform = `translate3D(${translate}px, 0px, 0.1px)`;
+      this.#state.els[lastIndex].order = -1;
+      this.#state.els[lastIndex].translate = translate;
+      this.#updateExProperties();
+    } else if (this.#state.btnPrev) {
+      this.#state.btnPrev.classList.add(this.#state.btnClassHide);
     }
-    this._autoplay();
+    this.#updateClasses();
+    this.#autoplay();
   }
 
-  // перейти к следующему слайду
-  next() {
-    this._direction = 'next';
-    this._move();
+  #reset() {
+    const transitionNoneClass = this.#state.prefix + this.constructor.#TRANSITION_NONE;
+    // получаем gap между слайдами
+    const gap = parseFloat(getComputedStyle(this.#state.elItems).gap);
+    // ширина одного слайда
+    const widthItem = this.#state.elListItem[0].getBoundingClientRect().width + gap;
+    const widthWrapper = this.#state.elWrapper.getBoundingClientRect().width;
+    const countActiveEls = Math.round(widthWrapper / widthItem);
+    if (widthItem === this.#state.width && countActiveEls === this.#state.countActiveItems) {
+      return;
+    }
+    this.#autoplay('stop');
+    this.#state.elItems.classList.add(transitionNoneClass);
+    this.#state.elItems.style.transform = 'translate3D(0px, 0px, 0.1px)';
+    this.#init();
+    window.requestAnimationFrame(() => {
+      this.#state.elItems.classList.remove(transitionNoneClass);
+    });
   }
-  // перейти к предыдущему слайду
-  prev() {
-    this._direction = 'prev';
-    this._move();
-  }
-  // управление автоматической сменой слайдов
-  autoplay() {
-    this._autoplay('stop');
-  }
-  moveTo(index) {
-    this._moveTo(index);
+
+  #updateExProperties() {
+    const els = this.#state.els.map((item) => item.el);
+    const orders = this.#state.els.map((item) => item.order);
+    this.#state.exOrderMin = Math.min(...orders);
+    this.#state.exOrderMax = Math.max(...orders);
+    const min = orders.indexOf(this.#state.exOrderMin);
+    const max = orders.indexOf(this.#state.exOrderMax);
+    this.#state.exItemMin = els[min];
+    this.#state.exItemMax = els[max];
+    this.#state.exTranslateMin = this.#state.els[min].translate;
+    this.#state.exTranslateMax = this.#state.els[max].translate;
   }
 }
+
+ItcSlider.createInstances();
+Footer

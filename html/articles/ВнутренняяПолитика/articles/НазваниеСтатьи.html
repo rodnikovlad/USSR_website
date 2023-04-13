@@ -11,8 +11,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Alice&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="/images/logo.png" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Alice&family=Inter:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/swiper@8/swiper-bundle.min.css"/>
+    <script src="https://unpkg.com/swiper@8/swiper-bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alice&family=Inter:wght@500&display=swap" rel="stylesheet">
     <title>Портал СССР</title>
 </head>
 <body>
@@ -28,9 +30,6 @@
 изучать необходимо.
 © Максим Горький.</pre>
                 </div>
-                <!-- <div class="col-1-image">
-                    <img src="../images/left-image.png" alt=""> //Левое изображение 
-                </div> -->
             </div>
             <div class="col-2">
                 <div class="col-2-header">
@@ -42,20 +41,18 @@
                         <p>Да здравствует созданный волей народов великий могучий Советский Союз!☭</p>
                     </div>
                 </div>
-                
+
                 <div class="main-text-container">
                     <div class="header-button-container">
                         <div class="header-button-container-background">
-                            <a href="/html/menu-items.html"><p id="change-container-text">К КАТЕГОРИЯМ</p></a>
+                            <a href="/html/articles/ВнутренняяПолитика/in-politic-main.html"><p id="change-container-text">К СТАТЬЯМ</p></a>
                         </div>
                     </div>
-                    <p class="article-text-main center-text">
-Союз Советских Социалистических Республик – первое в мире крупное социалистическое государство основанное 30 декабря 1922 года. Инициатором создания СССР был непосредственно Владимир Ильич Ленин, утверждая союз как государство равноправных советских национальных республик.
-
-С момента основания и распада СССР прошло уже без малого 100 лет. Советское государство оставило огромный след не только в истории республик являвшихся его членами, но и для всего мира показав людям альтернативный вариант общественного устройства, который исключал бы эксплуатацию человека человеком, с равными возможностями для каждого. Несомненно, советский опыт имеет как положительные, так и отрицательные моменты в своей истории. Наша задача – объективно показать различные стороны общественно-государственной жизни страны.
-
-Данный сайт несёт своей целью информационное просвещение всех интересующихся как самой историей, так и непосредственно СССР в частности. Все материалы в виде статей доступны по специальным вкладкам с указательными названиями.
-</p>
+                    <div id="menu-text">
+                        <div class="article-text">
+                            
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="col-3">
@@ -64,9 +61,6 @@
                         <img class="right-header-image" src="/images/gif.gif" alt="">
                     </figure>
                 </div>
-                <!-- <div class="col-3-image">
-                    <img src="../images/image 2.png" alt="">
-                </div> -->
             </div>
         </div>
     </div>
@@ -116,7 +110,42 @@
             </div>
         </div>
     </footer>
+    <script>
+        const swiper = new Swiper(".swiper", {
+          loop: true,
+
+          // If we need pagination
+          pagination: {
+            el: ".swiper-pagination",
+          },
+
+          // Navigation arrows
+          navigation: {
+            nextEl: ".swiper-button-next",
+            prevEl: ".swiper-button-prev",
+          },
+        });
+      </script>
+      <style>
+        .swiper {
+          height: 400px;
+          width: 100%;
+        }
+      </style>
+    <style>
+        .pic {
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .pic img{
+            object-fit: contain;
+            height: 100%;
+        }
+        </style>
+    <script src="../js/index.js"></script>
+    <script src="/js/simple-adaptive-slider.js"></script>
 </body>
-<script src="../js/index.js"></script>
-<script src="../js/simple-adaptive-slider.js"></script>
 </html>

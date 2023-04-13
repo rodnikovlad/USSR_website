@@ -168,7 +168,7 @@ figure {
     font-family: 'Inter', sans-serif;
     font-style: normal;
     font-weight: 1000;
-    font-size: 1vw;
+    font-size: 0.9vw;
     background: linear-gradient(180deg, #c00000 0%, #7c0000 41.01%, #724c01 49.21%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -335,7 +335,7 @@ figure {
     font-family: 'Alice';
     font-style: normal;
     font-weight: bold;
-    font-size: 1vw;
+    font-size: 0.9vw;
     color: #920a0a;
 }
 

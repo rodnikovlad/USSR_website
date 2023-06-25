@@ -19,20 +19,20 @@
     ],
     "routes": [
       {
-        "src": "css/(.*)",
+        "src": "/css/(.*)",
         "dest": "/static/css/$1"
       },
       {
-        "src": "images/(.*)",
+        "src": "/images/(.*)",
         "dest": "/static/img/$1"
       },
       {
-        "src": "html/(.*)",
+        "src": "/html/(.*)",
         "dest": "/templates/$1"
       },
       {
         "src": "/(.*)",
-        "dest": "html/main.html"
+        "dest": "/html/main.html"
       }
     ]
   }

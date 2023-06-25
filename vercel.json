@@ -1,0 +1,39 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "css/**",
+        "use": "@now/static",
+        "config": { "zeroConfig": true }
+      },
+      {
+        "src": "images/**",
+        "use": "@now/static",
+        "config": { "zeroConfig": true }
+      },
+      {
+        "src": "html/**",
+        "use": "@now/static",
+        "config": { "zeroConfig": true }
+      }
+    ],
+    "routes": [
+      {
+        "src": "css/(.*)",
+        "dest": "/static/css/$1"
+      },
+      {
+        "src": "images/(.*)",
+        "dest": "/static/img/$1"
+      },
+      {
+        "src": "html/(.*)",
+        "dest": "/templates/$1"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "html/main.html"
+      }
+    ]
+  }
+  
